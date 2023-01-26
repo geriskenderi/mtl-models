@@ -10,6 +10,7 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 
 from data.imdb import IMDB
 from data.jaffe import JAFFE
+from data.medic import MEDIC
 from models.vgg import MTLVGG
 from models.vgg_nddr import NDDRVGG
 
@@ -33,6 +34,11 @@ def main(args):
     if args.dataset_name == 'jaffe':
         trainset = JAFFE(data_path, transforms, data_folder_path="train")
         testset = JAFFE(data_path, transforms, data_folder_path="val")
+    if args.dataset_name == 'medic':
+        train_file = data_path / args.train_file_path
+        test_file = data_path / args.test_file_path
+        trainset = MEDIC(data_path, transforms, partition_idx_path=train_file)
+        testset = MEDIC(data_path, transforms, partition_idx_path=test_file)
     
     # # Debug only
     # trainset = torch.utils.data.Subset(trainset, list(range(100)))
