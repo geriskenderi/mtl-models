@@ -37,7 +37,7 @@ class MEDIC(Dataset):
         # mtl information
         self.num_tasks = self.y.shape[1]
         self.task_ids = [i for i in range(self.num_tasks)]
-        self.task_lbl_sizes = [5, 3]
+        self.task_lbl_sizes = [3, 5]
 
     def __len__(self):
         return len(self.imgs)
