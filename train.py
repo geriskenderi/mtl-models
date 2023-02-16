@@ -11,6 +11,7 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 from data.imdb import IMDB
 from data.jaffe import JAFFE
 from data.medic import MEDIC
+from data.faces import FACES
 from models.vgg import MTLVGG
 from models.vgg_nddr import NDDRVGG
 
@@ -39,14 +40,16 @@ def main(args):
         test_file = data_path / args.test_file_path
         trainset = MEDIC(data_path, transforms, partition_idx_path=train_file)
         testset = MEDIC(data_path, transforms, partition_idx_path=test_file)
-    
+    if args.dataset_name == 'faces':
+        trainset = FACES(data_path, transforms, partition="train")
+        testset = FACES(data_path, transforms, partition="test")
+
     # # Debug only
     # trainset = torch.utils.data.Subset(trainset, list(range(100)))
     # testset = torch.utils.data.Subset(testset, list(range(100)))
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     testloader = DataLoader(testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
     print('Done!')
-
 
     # Build model
     num_tasks = len(args.task_ids)
@@ -84,10 +87,10 @@ def main(args):
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = f"last_{run_name}"
     early_stop_callback = EarlyStopping(monitor="val_loss", patience=args.epochs//3, verbose=True, mode="min")
-    wandb_logger = WandbLogger(run_name, project='NDDR')
+    wandb_logger = WandbLogger(project="detangle-mtl", name=run_name, entity='vips4-univr')
     
     trainer = Trainer(
-        # devices=4,
+        # devices=2,
         # strategy="ddp",
         devices=[args.gpu_num],
         accelerator='gpu',
@@ -99,17 +102,16 @@ def main(args):
     trainer.fit(model, train_dataloaders=trainloader, val_dataloaders=testloader)
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, default='/media/data/gskenderi/imdb_crop/')
-    parser.add_argument('--ckpt_path', type=str, default='/media/data/gskenderi/nddr_ckpt/')
+    parser.add_argument('--ckpt_path', type=str, default='/media/data/lcapogrosso/mtl-models_ckpt/')
     parser.add_argument('--train_file_path', type=str, default='new_train_idx_v2.npy')
     parser.add_argument('--test_file_path', type=str, default='new_val_idx_v2.npy')
     parser.add_argument('--dataset_name', type=str, default='imdb')
     parser.add_argument('--use_nddr', action='store_true')
     parser.add_argument('--task_ids', nargs='+', type=int, default=[0, 1])
-    parser.add_argument('--task_output_sizes', type=int, nargs='+', default=[100, 2])
+    parser.add_argument('--task_output_sizes', type=int, nargs='+', default=[3, 5])
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--hidden_dim', type=int, default=512)
     parser.add_argument('--learning_rate', type=float, default=0.0001)     
