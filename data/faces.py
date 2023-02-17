@@ -1,9 +1,10 @@
 import os
-import torch
+
 import numpy as np
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
+
 
 class FACES(Dataset):
     def __init__(self, dataset_path, tv_transforms, partition):
