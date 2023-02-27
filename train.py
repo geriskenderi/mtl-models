@@ -1,4 +1,5 @@
 import argparse
+
 from pathlib import Path
 from datetime import datetime
 from torchvision import transforms as T
@@ -8,6 +9,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers.wandb import WandbLogger
 
+from data.cub import CUB
 from data.imdb import IMDB
 from data.jaffe import JAFFE
 from data.medic import MEDIC
@@ -43,7 +45,10 @@ def main(args):
     if args.dataset_name == 'faces':
         trainset = FACES(data_path, transforms, partition="train")
         testset = FACES(data_path, transforms, partition="test")
-
+    if args.dataset_name == 'cub':
+        trainset = CUB(data_path, transforms, partition="train")
+        testset = CUB(data_path, transforms, partition="val")
+    
     # # Debug only
     # trainset = torch.utils.data.Subset(trainset, list(range(100)))
     # testset = torch.utils.data.Subset(testset, list(range(100)))
