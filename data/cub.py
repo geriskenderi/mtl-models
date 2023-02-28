@@ -33,7 +33,7 @@ class CUB(Dataset):
             self.data = self.data[self.data.is_training_img == 0]
 
         # MTL information.
-        self.y = np.stack([image_class_labels['target']], axis=1)
+        self.y = np.stack([self.data['target']], axis=1)
         self.num_tasks = self.y.shape[1]
         self.task_ids = [i for i in range(self.num_tasks)]
         birds_lbls = np.unique(image_class_labels['target'])
