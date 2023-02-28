@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
 import argparse
@@ -25,11 +28,11 @@ def main(args):
         dst_img_path = os.path.join(dataset_path, "train", img)
         shutil.copyfile(src_img_path, dst_img_path)
 
-    test_path = os.path.join(dataset_path, "test")
+    test_path = os.path.join(dataset_path, "val")
     os.makedirs(test_path, exist_ok=True)
     for img in sorted(testset):
         src_img_path = os.path.join(dataset_path, img)
-        dst_img_path = os.path.join(dataset_path, "test", img)
+        dst_img_path = os.path.join(dataset_path, "val", img)
         shutil.copyfile(src_img_path, dst_img_path)
 
 

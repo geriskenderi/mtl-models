@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 
 from pathlib import Path
@@ -44,7 +47,7 @@ def main(args):
         testset = MEDIC(data_path, transforms, partition_idx_path=test_file)
     if args.dataset_name == 'faces':
         trainset = FACES(data_path, transforms, partition="train")
-        testset = FACES(data_path, transforms, partition="test")
+        testset = FACES(data_path, transforms, partition="val")
     if args.dataset_name == 'cub':
         trainset = CUB(data_path, transforms, partition="train")
         testset = CUB(data_path, transforms, partition="val")
