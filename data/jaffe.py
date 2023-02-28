@@ -1,8 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
-import torch
+
 import numpy as np
+
 from PIL import Image
 from torch.utils.data import Dataset
+
 
 class JAFFE(Dataset):
     def __init__(self, dataset_path, tv_transforms, data_folder_path):

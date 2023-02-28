@@ -1,10 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 import torch
+
 import numpy as np
+
 from PIL import Image
-from torch.utils.data import Dataset
 from scipy.io import loadmat
+from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
+
 
 class IMDB(Dataset):
     def __init__(self, dataset_path, tv_transforms, partition_idx_path):

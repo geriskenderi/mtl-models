@@ -1,9 +1,12 @@
-import os
-import torch
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import pandas as pd
+
 from PIL import Image
 from torch.utils.data import Dataset
+
 
 class MEDIC(Dataset):
     def __init__(self, dataset_path, tv_transforms, partition_idx_path):
