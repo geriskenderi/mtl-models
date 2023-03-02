@@ -12,6 +12,7 @@ class FACES(Dataset):
     def __init__(self, dataset_path, tv_transforms, partition):
         super().__init__()
         self.dataset_path = dataset_path
+        self.partition = partition
 
         images = []
         # ids = []
@@ -20,7 +21,7 @@ class FACES(Dataset):
         expressions = []
         # picture_sets = []
 
-        for img in sorted(os.listdir(os.path.join(dataset_path, partition))):
+        for img in sorted(os.listdir(os.path.join(dataset_path, self.partition))):
             # Read person ID, age, and expression from filename.
             img_labes = img.split("_")
             # ids.append(img_labes[0])
@@ -60,7 +61,7 @@ class FACES(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, index):
-        imgs = Image.open(self.dataset_path / self.imgs[index]).convert('RGB')
+        imgs = Image.open(self.dataset_path / self.partition / self.imgs[index]).convert('RGB')
 
         imgs = self.tv_transforms(imgs)
         return imgs, self.y[index]
