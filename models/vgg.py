@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
-from sklearn.metrics import accuracy_score, matthews_corrcoef, mean_absolute_error, median_absolute_error
+from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, median_absolute_error
 from torchvision.models import vgg16
 
 class MTLVGG(pl.LightningModule):
@@ -20,7 +20,7 @@ class MTLVGG(pl.LightningModule):
         for task_id in task_ids:
             self.classification_heads.append(
                 nn.Sequential(
-                    nn.Linear(512*8*8, hidden_dim),
+                    nn.Linear(512*7*7, hidden_dim),
                     nn.Dropout(0.1),
                     nn.ReLU(),
                     nn.Linear(hidden_dim, output_sizes[task_id])
@@ -144,9 +144,9 @@ class MTLVGG(pl.LightningModule):
             else:
                 pred, gt = pred.argmax(-1).detach().cpu().numpy().flatten(), gt.detach().cpu().numpy().flatten()        
                 acc = accuracy_score(gt, pred)
-                mcc = matthews_corrcoef(gt, pred)
+                f1 = f1_score(gt, pred, average="micro")
                 self.log(f'{train_str}_task{task}_accuracy', acc, sync_dist=True)
-                self.log(f'{train_str}_task{task}_mcc', mcc, sync_dist=True)
+                self.log(f'{train_str}_task{task}_f1', f1, sync_dist=True)
 
                 if train_str == 'val':
-                    print(f'Task: {task}, Acc: {acc}, MCC: {mcc}')
+                    print(f'Task: {task}, Acc: {acc}, F1: {f1}')
