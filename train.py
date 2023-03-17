@@ -14,6 +14,7 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 
 from data.cub import CUB
 from data.imdb import IMDB
+from data.cars import CARS
 from data.jaffe import JAFFE
 from data.medic import MEDIC
 from data.faces import FACES
@@ -51,7 +52,10 @@ def main(args):
     if args.dataset_name == 'cub':
         trainset = CUB(data_path, transforms, partition="train")
         testset = CUB(data_path, transforms, partition="val")
-    
+    if args.dataset_name == 'cars':
+        trainset = CARS(data_path, transforms, partition="train")
+        testset = CARS(data_path, transforms, partition="val")
+
     # # Debug only
     # trainset = torch.utils.data.Subset(trainset, list(range(100)))
     # testset = torch.utils.data.Subset(testset, list(range(100)))

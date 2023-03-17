@@ -20,7 +20,8 @@ class MTLVGG(pl.LightningModule):
         for task_id in task_ids:
             self.classification_heads.append(
                 nn.Sequential(
-                    nn.Linear(512*7*7, hidden_dim),
+                    nn.Linear(512*8*8, hidden_dim),
+                    # nn.Linear(512*7*7, hidden_dim),
                     nn.Dropout(0.1),
                     nn.ReLU(),
                     nn.Linear(hidden_dim, output_sizes[task_id])
