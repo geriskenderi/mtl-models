@@ -50,8 +50,22 @@ def main(args):
         trainset = FACES(data_path, transforms, partition="train")
         testset = FACES(data_path, transforms, partition="val")
     if args.dataset_name == 'cub':
-        trainset = CUB(data_path, transforms, partition="train")
-        testset = CUB(data_path, transforms, partition="val")
+        train_transforms = T.Compose([
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomVerticalFlip(p=0.5),
+            T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+            T.ColorJitter(brightness=.4, hue=.2),
+            T.Resize(256),
+            T.CenterCrop(224),
+            T.ToTensor()
+        ])
+        test_transforms = T.Compose([
+            T.Resize(256),
+            T.CenterCrop(224),
+            T.ToTensor()
+        ])
+        trainset = CUB(data_path, train_transforms, partition="train")
+        testset = CUB(data_path, test_transforms, partition="val")
     if args.dataset_name == 'cars':
         trainset = CARS(data_path, transforms, partition="train")
         testset = CARS(data_path, transforms, partition="val")
