@@ -22,13 +22,13 @@ from models.vgg import MTLVGG
 from models.vgg_nddr import NDDRVGG
 
 def main(args):
-    # Seed 
+    # Seed
     seed_everything(args.seed)
 
     # Define dataset and dataloaders
     data_path = Path(args.data_path)
     transforms = T.Compose([
-        T.Resize((256,256)), 
+        T.Resize((256,256)),
         T.ToTensor()
     ])
 
@@ -80,7 +80,7 @@ def main(args):
     # Build model
     num_tasks = len(args.task_ids)
     assert len(args.task_output_sizes) >= num_tasks, 'Please provide one or more task ids and their corresponding output sizes (in order)'
-    
+
     model = None
     if args.use_nddr:
         model = NDDRVGG(
@@ -98,10 +98,14 @@ def main(args):
             dataset_name=args.dataset_name,
             learning_rate=args.learning_rate
         )
-    
+
     # Training and evaluation
     dt_string = datetime.now().strftime("%d-%m-%Y-%H-%M")
     run_name = f'VGG-{args.dataset_name}-multitask{num_tasks > 1}-usesNDDR_{args.use_nddr}-tasks{args.task_ids}'
+    if args.add_info:
+        run_name += f"_{args.add_info}"
+
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=args.ckpt_path,
         filename=f'{run_name}'+ '{epoch}-' + dt_string,
@@ -113,8 +117,8 @@ def main(args):
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = f"last_{run_name}"
     early_stop_callback = EarlyStopping(monitor="val_loss", patience=args.epochs//3, verbose=True, mode="min")
-    wandb_logger = WandbLogger(project="detangle-mtl", name=run_name, entity='vips4-univr')
-    
+    wandb_logger = WandbLogger(project="detaux", name=run_name, entity='vips4-univr')
+
     trainer = Trainer(
         # devices=2,
         # strategy="ddp",
@@ -140,11 +144,12 @@ if __name__ == '__main__':
     parser.add_argument('--task_output_sizes', type=int, nargs='+', default=[3, 5])
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--hidden_dim', type=int, default=512)
-    parser.add_argument('--learning_rate', type=float, default=0.0001)     
+    parser.add_argument('--learning_rate', type=float, default=0.0001)
     parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--num_workers', type=int, default=8)
-    parser.add_argument('--seed', type=int, default=21) 
-    parser.add_argument('--gpu_num', type=int, default=0) 
+    parser.add_argument('--seed', type=int, default=21)
+    parser.add_argument('--gpu_num', type=int, default=0)
+    parser.add_argument('--add_info', type=str)
 
     args = parser.parse_args()
     main(args)
