@@ -4,7 +4,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, matthews_corrcoef, mean_absolute_error, median_absolute_error
-from torchvision.models import vgg16
+from torchvision.models import vgg16_bn, VGG16_BN_Weights
 
 class NDDRLayer(nn.Module):
     def __init__(self, hidden_dim, task_ids, init_weights=[0.9, 0.1]):
@@ -14,12 +14,12 @@ class NDDRLayer(nn.Module):
 
         self.layer = nn.ModuleList(
             [nn.Sequential(
-                    nn.Conv2d(len(task_ids) * hidden_dim, hidden_dim, 1, 1, 0, bias=False), 
-                    nn.BatchNorm2d(hidden_dim, momentum=0.05), 
+                    nn.Conv2d(len(task_ids) * hidden_dim, hidden_dim, 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(hidden_dim, momentum=0.05),
                     nn.ReLU()
-                ) 
+                )
             for _ in self.task_ids])
-        
+
         # Weight init as in paper
         for i, task in enumerate(self.task_ids):
             layer = self.layer[task]
@@ -31,7 +31,7 @@ class NDDRLayer(nn.Module):
             # Conv init
             layer[0].weight.data.copy_(t_beta)
             layer[0].weight.data[:,int(i*hidden_dim):int((i+1)*hidden_dim)].copy_(t_alpha)
-            
+
             # Batchnorm init
             layer[1].weight.data.fill_(1.0)
             layer[1].bias.data.fill_(0.0)
@@ -46,13 +46,17 @@ class NDDRLayer(nn.Module):
 class NDDRVGG(pl.LightningModule):
     def __init__(self, hidden_dim, output_sizes, dataset_name, learning_rate=1e-2):
         super(NDDRVGG, self).__init__()
-        self.save_hyperparameters() 
+        self.save_hyperparameters()
         self.learning_rate = learning_rate
         self.task_ids = [0,1]
 
+        pretrained_weights = None
+        if 'woof' in dataset_name:
+            pretrained_weights = VGG16_BN_Weights.IMAGENET1K_V1
+
         # Build one VGG model for each task
-        vgg_t1 = vgg16(pretrained=False).features
-        vgg_t2 = vgg16(pretrained=False).features
+        vgg_t1 = vgg16_bn(weights=pretrained_weights).features
+        vgg_t2 = vgg16_bn(weights=pretrained_weights).features
 
         # We need an nddr layer after each pooling operation. This means we must separate the feature extractors into pieces
         self.vgg_t1 = nn.ModuleList()
@@ -94,10 +98,10 @@ class NDDRVGG(pl.LightningModule):
                 ft1, ft2 = self.vgg_t1[i](x), self.vgg_t2[i](x)
             else:
                 ft1, ft2 = self.vgg_t1[i](ft1), self.vgg_t2[i](ft2)
-            
+
             ft1, ft2 = self.nddrs[i]([ft1, ft2])
-            
-            
+
+
         ft1, ft2 = torch.flatten(ft1, start_dim=1), torch.flatten(ft2, start_dim=1)
         logits_t1, logits_t2 = self.classification_heads[0](ft1), self.classification_heads[1](ft2)
         task_logits.append(logits_t1)
@@ -147,14 +151,14 @@ class NDDRVGG(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        
+
         logits = self.forward(x)
         losses = []
         for i in range(2):
             lgs, gt = logits[i], y[:, i]
             loss = F.cross_entropy(lgs, gt)
             self.log(f'train_task{i}_loss', loss, sync_dist=True)
-            losses.append(loss)   
+            losses.append(loss)
         mtl_loss = sum(losses)
         self.log('train_loss', mtl_loss, sync_dist=True)
 
@@ -177,21 +181,21 @@ class NDDRVGG(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        
+
         logits = self.forward(x)
         losses = []
         for i in range(2):
             lgs, gt = logits[i], y[:, i]
             loss = F.cross_entropy(lgs, gt)
             self.log(f'val_task{i}_loss', loss, sync_dist=True)
-            losses.append(loss)   
+            losses.append(loss)
         mtl_loss = sum(losses)
         self.log('val_loss', mtl_loss, sync_dist=True)
 
         # Save for evaluation
         self.val_pred.append(logits)
         self.val_gt.append(y)
-        
+
     def on_validation_epoch_end(self):
         self.mtl_evaluation(self.val_pred, self.val_gt, self.training)
 
@@ -199,7 +203,7 @@ class NDDRVGG(pl.LightningModule):
         train_str = 'train' if training else 'val'
         for i, task in enumerate(self.task_ids):
             pred, gt = torch.vstack([x[i] for x in pred_list]), torch.hstack([y[:, task] for y in gt_list])
-            
+
             if self.dataset_name == 'imdb' and task == 0:
                 pred = F.softmax(pred, -1)
                 age_values = torch.arange(0, 100, 1).to(pred.device)
@@ -213,7 +217,7 @@ class NDDRVGG(pl.LightningModule):
                 if train_str == 'val':
                     print(f'Task: {task}, MAE: {mae}, MedAE: {made}')
             else:
-                pred, gt = pred.argmax(-1).detach().cpu().numpy().flatten(), gt.detach().cpu().numpy().flatten()        
+                pred, gt = pred.argmax(-1).detach().cpu().numpy().flatten(), gt.detach().cpu().numpy().flatten()
                 acc = accuracy_score(gt, pred)
                 mcc = matthews_corrcoef(gt, pred)
                 self.log(f'{train_str}_task{i}_accuracy', acc, sync_dist=True)
