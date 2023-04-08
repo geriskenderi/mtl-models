@@ -47,6 +47,10 @@ def main(args):
         trainset = MEDIC(data_path, transforms, partition_idx_path=train_file)
         testset = MEDIC(data_path, transforms, partition_idx_path=test_file)
     if args.dataset_name == 'faces':
+        transforms = T.Compose([
+            T.Resize((224,224)),
+            T.ToTensor()
+        ])
         trainset = FACES(data_path, transforms, partition="train")
         testset = FACES(data_path, transforms, partition="val")
     if args.dataset_name == 'cub':
@@ -87,7 +91,8 @@ def main(args):
             hidden_dim=args.hidden_dim,
             output_sizes=trainset.task_lbl_sizes,
             dataset_name=args.dataset_name,
-            learning_rate=args.learning_rate
+            learning_rate=args.learning_rate,
+            feature_extractor=args.feature_extractor
         )
     else:
         model = MTLVGG(
@@ -96,7 +101,8 @@ def main(args):
             task_ids=args.task_ids,
             output_sizes=trainset.task_lbl_sizes,
             dataset_name=args.dataset_name,
-            learning_rate=args.learning_rate
+            learning_rate=args.learning_rate,
+            feature_extractor=args.feature_extractor
         )
 
     # Training and evaluation
@@ -149,6 +155,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--seed', type=int, default=21)
     parser.add_argument('--gpu_num', type=int, default=0)
+    parser.add_argument('--feature_extractor', type=str, default='vgg')
     parser.add_argument('--add_info', type=str)
 
     args = parser.parse_args()

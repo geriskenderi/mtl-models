@@ -3,18 +3,24 @@ import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, median_absolute_error
-from torchvision.models import vgg16_bn, VGG16_BN_Weights
+from torchvision.models import vgg16, vgg16_bn, VGG16_Weights, VGG16_BN_Weights
 
 class MTLVGG(pl.LightningModule):
-    def __init__(self, hidden_dim, num_tasks, task_ids, output_sizes, dataset_name, learning_rate=1e-3):
+    def __init__(self, hidden_dim, num_tasks, task_ids, output_sizes, dataset_name, feature_extractor, learning_rate=1e-3):
         super(MTLVGG, self).__init__()
         self.save_hyperparameters()
 
         pretrained_weights = None
         if 'woof' in dataset_name:
-            pretrained_weights = VGG16_BN_Weights.IMAGENET1K_V1
+            if feature_extractor == 'vgg':
+                pretrained_weights = VGG16_Weights.IMAGENET1K_V1
+            elif feature_extractor == 'vgg_bn':
+                pretrained_weights = VGG16_BN_Weights.IMAGENET1K_V1
 
-        self.feature_extractor = vgg16_bn(weights=pretrained_weights).features
+        if feature_extractor == 'vgg':
+            self.feature_extractor = vgg16(weights=pretrained_weights).features
+        elif feature_extractor == 'vgg_bn':
+            self.feature_extractor = vgg16_bn(weights=pretrained_weights).features    
         self.dataset_name = dataset_name
         self.num_tasks = num_tasks
         self.task_ids = task_ids
@@ -24,8 +30,8 @@ class MTLVGG(pl.LightningModule):
         for task_id in task_ids:
             self.classification_heads.append(
                 nn.Sequential(
-                    nn.Linear(512*8*8, hidden_dim),
-                    # nn.Linear(512*7*7, hidden_dim),
+                    # nn.Linear(512*8*8, hidden_dim),
+                    nn.Linear(512*7*7, hidden_dim),
                     nn.Dropout(0.1),
                     nn.ReLU(),
                     nn.Linear(hidden_dim, output_sizes[task_id])

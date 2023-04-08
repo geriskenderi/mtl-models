@@ -4,7 +4,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, matthews_corrcoef, mean_absolute_error, median_absolute_error
-from torchvision.models import vgg16_bn, VGG16_BN_Weights
+from torchvision.models import vgg16, vgg16_bn, VGG16_Weights, VGG16_BN_Weights
 
 class NDDRLayer(nn.Module):
     def __init__(self, hidden_dim, task_ids, init_weights=[0.9, 0.1]):
@@ -44,7 +44,7 @@ class NDDRLayer(nn.Module):
         return ft_t1, ft_t2
 
 class NDDRVGG(pl.LightningModule):
-    def __init__(self, hidden_dim, output_sizes, dataset_name, learning_rate=1e-2):
+    def __init__(self, hidden_dim, output_sizes, dataset_name, feature_extractor, learning_rate=1e-2):
         super(NDDRVGG, self).__init__()
         self.save_hyperparameters()
         self.learning_rate = learning_rate
@@ -52,11 +52,19 @@ class NDDRVGG(pl.LightningModule):
 
         pretrained_weights = None
         if 'woof' in dataset_name:
-            pretrained_weights = VGG16_BN_Weights.IMAGENET1K_V1
+            if feature_extractor == 'vgg':
+                pretrained_weights = VGG16_Weights.IMAGENET1K_V1
+            elif feature_extractor == 'vgg_bn':
+                pretrained_weights = VGG16_BN_Weights.IMAGENET1K_V1
 
-        # Build one VGG model for each task
-        vgg_t1 = vgg16_bn(weights=pretrained_weights).features
-        vgg_t2 = vgg16_bn(weights=pretrained_weights).features
+        # Build one VGG model for each task.
+        vgg_t1, vgg_t2 = None, None
+        if feature_extractor == 'vgg':
+            vgg_t1 = vgg16(weights=pretrained_weights).features
+            vgg_t2 = vgg16(weights=pretrained_weights).features
+        elif feature_extractor == 'vgg_bn':
+            vgg_t1 = vgg16_bn(weights=pretrained_weights).features
+            vgg_t2 = vgg16_bn(weights=pretrained_weights).features
 
         # We need an nddr layer after each pooling operation. This means we must separate the feature extractors into pieces
         self.vgg_t1 = nn.ModuleList()
@@ -84,7 +92,8 @@ class NDDRVGG(pl.LightningModule):
         for out_dim in output_sizes:
             self.classification_heads.append(
                 nn.Sequential(
-                    nn.Linear(512*8*8, hidden_dim),
+                    # nn.Linear(512*8*8, hidden_dim),
+                    nn.Linear(512*7*7, hidden_dim),
                     nn.Dropout(0.1),
                     nn.ReLU(),
                     nn.Linear(hidden_dim, out_dim)
